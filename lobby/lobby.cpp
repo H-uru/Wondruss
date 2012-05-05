@@ -3,7 +3,8 @@
 #include <functional>
 
 wondruss::lobby::lobby(asio::io_service& io_service)
-  : acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 14617))
+  : acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 14617))
+    // on Linux, v6 listens to both protocols. I can't promise this works on other platforms
 {
   start_accept();
 }
