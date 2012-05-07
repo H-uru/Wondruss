@@ -1,6 +1,5 @@
-#include <asio.hpp>
-
 #include "lobby/lobby.hpp"
+#include "lobby/gate_slave.hpp"
 
 int main(int argc, char** argv) {
   //TODO: setup some sort of logging provider
