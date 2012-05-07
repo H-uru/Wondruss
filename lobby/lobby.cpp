@@ -1,5 +1,5 @@
 #include "lobby.hpp"
-#include "gate_slave.hpp"
+#include "auth_slave.hpp"
 
 #include <functional>
 
@@ -28,7 +28,7 @@ wondruss::lobby::lobby(asio::io_service& io_service)
     // on Linux, v6 listens to both protocols. I can't promise this works on other platforms
 {
   //TODO: only launch gate/auth when we're the master host
-  gate = new gate_slave(io_service);
+  auth = new auth_slave(io_service);
   // TODO: do we need to connect to a master host?
   start_accept();
 }
@@ -66,16 +66,13 @@ void wondruss::lobby::handle_con_header(tcp::socket* socket, ConnectionHeader* h
     }
     switch(header->conn_type) {
     case ConnCliToAuth:
+      auth->handleClient(socket);
       break;
     case ConnCliToGame:
       break;
     case ConnCliToFile:
-      break;
     case ConnCliToCsr:
-      break;
     case ConnCliToGate:
-      gate->handleClient(socket);
-      break;
     default:
       //TODO: print a warning
       break;

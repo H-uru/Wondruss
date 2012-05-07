@@ -2,10 +2,10 @@
 
 namespace wondruss
 {
-  class gate_slave
+  class auth_slave
   {
   public:
-    gate_slave(asio::io_service&);
+    auth_slave(asio::io_service&);
     void handleClient(asio::ip::tcp::socket*);
 
   private:

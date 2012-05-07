@@ -1,6 +1,6 @@
-#include "gate_slave.hpp"
+#include "auth_slave.hpp"
 
-wondruss::gate_slave::gate_slave(asio::io_service& io_service)
+wondruss::auth_slave::auth_slave(asio::io_service& io_service)
   : fdsock(io_service)
 {
   asio::local::stream_protocol::socket child_sock(io_service);
@@ -12,15 +12,15 @@ wondruss::gate_slave::gate_slave(asio::io_service& io_service)
     io_service.notify_fork(asio::io_service::fork_child);
     char buf[10];
     sprintf(buf, "%u", child_sock.native());
-    //execvp("wondruss_gate", "wondruss_gate", buf, nullptr);
-    puts("Should be running 'exec' right now, but gatekeeper is still unimplemented\n");
+    //execvp("wondruss_auth", "wondruss_auth", buf, nullptr);
+    puts("Should be running 'exec' right now, but auth server is still unimplemented\n");
     exit(0);
   }
   io_service.notify_fork(asio::io_service::fork_parent);
   //TODO: read from the socket so we know when the gatekeeper is ready.
 }
 
-void wondruss::gate_slave::handleClient(asio::ip::tcp::socket* sock)
+void wondruss::auth_slave::handleClient(asio::ip::tcp::socket* sock)
 {
   //TODO: forward the socket to the child process.
 }
