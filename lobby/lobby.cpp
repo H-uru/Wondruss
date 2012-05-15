@@ -1,9 +1,6 @@
 #include "lobby.hpp"
-#include "auth_slave.hpp"
 
 #include <functional>
-
-using asio::ip::tcp;
 
 enum ConnectionType {
   ConnCliToAuth = 10,
@@ -27,30 +24,36 @@ wondruss::lobby::lobby(asio::io_service& io_service)
   : acceptor(io_service, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 14617))
     // on Linux, v6 listens to both protocols. I can't promise this works on other platforms
 {
+  int oldflags = fcntl(acceptor.native(), F_GETFD, 0);
+  fcntl(acceptor.native(), F_SETFD, FD_CLOEXEC | oldflags);
   //TODO: only launch gate/auth when we're the master host
-  auth = new auth_slave(io_service);
+  auth = std::unique_ptr<auth_slave>(new auth_slave(io_service));
   // TODO: do we need to connect to a master host?
   start_accept();
 }
 
 void wondruss::lobby::start_accept()
 {
-  tcp::socket* socket = new tcp::socket(acceptor.get_io_service());
-  acceptor.async_accept(*socket, std::bind(std::mem_fn(&lobby::handle_accept), this, socket, std::placeholders::_1));
+  asio::ip::tcp::socket* socket = new asio::ip::tcp::socket(acceptor.get_io_service());
+  acceptor.async_accept(*socket, std::bind(std::mem_fn(&lobby::handle_accept), this, std::unique_ptr<asio::ip::tcp::socket>(socket), std::placeholders::_1));
 }
 
-void wondruss::lobby::handle_accept(tcp::socket* socket, const asio::error_code& error)
+void wondruss::lobby::handle_accept(std::unique_ptr<asio::ip::tcp::socket>& socket, const asio::error_code& error)
 {
   if (!error) {
     ConnectionHeader* hdr = new ConnectionHeader;
     int oldflags = fcntl(socket->native(), F_GETFD, 0);
     fcntl(socket->native(), F_SETFD, FD_CLOEXEC | oldflags);
-    socket->async_receive(asio::buffer(hdr, sizeof(ConnectionHeader)), std::bind(std::mem_fn(&lobby::handle_con_header), this, socket, hdr, std::placeholders::_1, std::placeholders::_2));
+    asio::ip::tcp::socket* s = socket.get();
+    s->async_receive(asio::buffer(hdr, sizeof(ConnectionHeader)), std::bind(std::mem_fn(&lobby::handle_con_header), this, std::move(socket), std::unique_ptr<ConnectionHeader>(hdr), std::placeholders::_1, std::placeholders::_2));
+  } else {
+    puts("Error on accept!\n");
+    // TODO: better error handling here
   }
   start_accept();
 }
 
-void wondruss::lobby::handle_con_header(tcp::socket* socket, ConnectionHeader* header, const asio::error_code& error, size_t bytes)
+void wondruss::lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& socket, std::unique_ptr<ConnectionHeader>& header, const asio::error_code& error, size_t bytes)
 {
   if (error) {
     puts("Error on header read!\n");
@@ -65,21 +68,19 @@ void wondruss::lobby::handle_con_header(tcp::socket* socket, ConnectionHeader* h
       delete[] buf;
     }
     switch(header->conn_type) {
+    case ConnCliToGate:
+      break;
     case ConnCliToAuth:
-      auth->handleClient(socket);
+      auth->handleClient(std::move(socket));
       break;
     case ConnCliToGame:
       break;
     case ConnCliToFile:
     case ConnCliToCsr:
-    case ConnCliToGate:
     default:
       //TODO: print a warning
       break;
     }
   }
-  // At this point we've sent the socket to the slave process. It can go away.
-  delete socket;
-  delete header;
 }
 

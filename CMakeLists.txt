@@ -17,5 +17,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG ${CMAKE_CXX_FLAGS_DEBUG}")
 
 find_package(Threads REQUIRED)
 
-add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp main.cpp)
+add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp lobby.cpp)
+add_executable(wondruss_auth auth/authsrv.cpp auth.cpp)
+target_link_libraries(wondruss_auth ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(wondruss ${CMAKE_THREAD_LIBS_INIT})
