@@ -1,0 +1,98 @@
+Only in .: asio.patch
+diff -ur /home/branan/asio-1.5.3/include/asio/basic_socket_acceptor.hpp ./basic_socket_acceptor.hpp
+--- /home/branan/asio-1.5.3/include/asio/basic_socket_acceptor.hpp	2011-03-10 18:43:23.000000000 -0800
++++ ./basic_socket_acceptor.hpp	2012-05-14 14:27:57.000000000 -0700
+@@ -953,7 +953,7 @@
+   {
+     // If you get an error on the following line it means that your handler does
+     // not meet the documented type requirements for a AcceptHandler.
+-    ASIO_ACCEPT_HANDLER_CHECK(AcceptHandler, handler) type_check;
++    //ASIO_ACCEPT_HANDLER_CHECK(AcceptHandler, handler) type_check;
+ 
+     this->get_service().async_accept(this->get_implementation(),
+         peer, 0, ASIO_MOVE_CAST(AcceptHandler)(handler));
+diff -ur /home/branan/asio-1.5.3/include/asio/basic_stream_socket.hpp ./basic_stream_socket.hpp
+--- /home/branan/asio-1.5.3/include/asio/basic_stream_socket.hpp	2011-03-10 18:43:23.000000000 -0800
++++ ./basic_stream_socket.hpp	2012-05-14 14:29:01.000000000 -0700
+@@ -508,7 +508,7 @@
+   {
+     // If you get an error on the following line it means that your handler does
+     // not meet the documented type requirements for a ReadHandler.
+-    ASIO_READ_HANDLER_CHECK(ReadHandler, handler) type_check;
++    //ASIO_READ_HANDLER_CHECK(ReadHandler, handler) type_check;
+ 
+     this->get_service().async_receive(this->get_implementation(),
+         buffers, 0, ASIO_MOVE_CAST(ReadHandler)(handler));
+diff -ur /home/branan/asio-1.5.3/include/asio/detail/reactive_socket_accept_op.hpp ./detail/reactive_socket_accept_op.hpp
+--- /home/branan/asio-1.5.3/include/asio/detail/reactive_socket_accept_op.hpp	2011-03-10 18:43:24.000000000 -0800
++++ ./detail/reactive_socket_accept_op.hpp	2012-05-14 15:18:46.000000000 -0700
+@@ -98,7 +98,7 @@
+   {
+     // Take ownership of the handler object.
+     reactive_socket_accept_op* o(static_cast<reactive_socket_accept_op*>(base));
+-    ptr p = { boost::addressof(o->handler_), o, o };
++    //ptr p = { boost::addressof(o->handler_), o, o };
+ 
+     ASIO_HANDLER_COMPLETION((o));
+ 
+@@ -108,17 +108,18 @@
+     // with the handler. Consequently, a local copy of the handler is required
+     // to ensure that any owning sub-object remains valid until after we have
+     // deallocated the memory here.
+-    detail::binder1<Handler, asio::error_code>
+-      handler(o->handler_, o->ec_);
+-    p.h = boost::addressof(handler.handler_);
+-    p.reset();
++    //detail::binder1<Handler, asio::error_code>
++    //  handler(o->handler_, o->ec_);
++    //p.h = boost::addressof(handler.handler_);
++    //p.reset();
+ 
+     // Make the upcall if required.
+     if (owner)
+     {
+       asio::detail::fenced_block b;
+-      ASIO_HANDLER_INVOCATION_BEGIN((handler.arg1_));
+-      asio_handler_invoke_helpers::invoke(handler, handler.handler_);
++      ASIO_HANDLER_INVOCATION_BEGIN((o->ec_));
++      //asio_handler_invoke_helpers::invoke(std::bind(o->handler_, o->ec_), o->handler_);
++      o->handler_(o->ec_);
+       ASIO_HANDLER_INVOCATION_END;
+     }
+   }
+diff -ur /home/branan/asio-1.5.3/include/asio/detail/reactive_socket_recv_op.hpp ./detail/reactive_socket_recv_op.hpp
+--- /home/branan/asio-1.5.3/include/asio/detail/reactive_socket_recv_op.hpp	2011-03-10 18:43:24.000000000 -0800
++++ ./detail/reactive_socket_recv_op.hpp	2012-05-14 15:31:02.000000000 -0700
+@@ -85,7 +85,7 @@
+   {
+     // Take ownership of the handler object.
+     reactive_socket_recv_op* o(static_cast<reactive_socket_recv_op*>(base));
+-    ptr p = { boost::addressof(o->handler_), o, o };
++    //ptr p = { boost::addressof(o->handler_), o, o };
+ 
+     ASIO_HANDLER_COMPLETION((o));
+ 
+@@ -95,17 +95,18 @@
+     // with the handler. Consequently, a local copy of the handler is required
+     // to ensure that any owning sub-object remains valid until after we have
+     // deallocated the memory here.
+-    detail::binder2<Handler, asio::error_code, std::size_t>
+-      handler(o->handler_, o->ec_, o->bytes_transferred_);
+-    p.h = boost::addressof(handler.handler_);
+-    p.reset();
++    //detail::binder2<Handler, asio::error_code, std::size_t>
++    //  handler(o->handler_, o->ec_, o->bytes_transferred_);
++    //p.h = boost::addressof(handler.handler_);
++    //p.reset();
+ 
+     // Make the upcall if required.
+     if (owner)
+     {
+       asio::detail::fenced_block b;
+       ASIO_HANDLER_INVOCATION_BEGIN((handler.arg1_, handler.arg2_));
+-      asio_handler_invoke_helpers::invoke(handler, handler.handler_);
++      //asio_handler_invoke_helpers::invoke(handler, handler.handler_);
++      o->handler_(o->ec_, o->bytes_transferred_);
+       ASIO_HANDLER_INVOCATION_END;
+     }
+   }

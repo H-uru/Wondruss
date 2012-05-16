@@ -41,13 +41,14 @@ void wondruss::lobby::start_accept()
 void wondruss::lobby::handle_accept(std::unique_ptr<asio::ip::tcp::socket>& socket, const asio::error_code& error)
 {
   if (!error) {
+    printf("[lobby]\tGot connection from %s\n", socket->remote_endpoint().address().to_string().c_str());
     ConnectionHeader* hdr = new ConnectionHeader;
     int oldflags = fcntl(socket->native(), F_GETFD, 0);
     fcntl(socket->native(), F_SETFD, FD_CLOEXEC | oldflags);
     asio::ip::tcp::socket* s = socket.get();
     s->async_receive(asio::buffer(hdr, sizeof(ConnectionHeader)), std::bind(std::mem_fn(&lobby::handle_con_header), this, std::move(socket), std::unique_ptr<ConnectionHeader>(hdr), std::placeholders::_1, std::placeholders::_2));
   } else {
-    puts("Error on accept!\n");
+    printf("[lobby]\tGot error on accept!\n");
     // TODO: better error handling here
   }
   start_accept();
@@ -56,16 +57,17 @@ void wondruss::lobby::handle_accept(std::unique_ptr<asio::ip::tcp::socket>& sock
 void wondruss::lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& socket, std::unique_ptr<ConnectionHeader>& header, const asio::error_code& error, size_t bytes)
 {
   if (error) {
-    puts("Error on header read!\n");
+    printf("[lobby]\tGot error on header read from %s\n", socket->remote_endpoint().address().to_string().c_str());
     // TODO: better error detection here
   } else {
-    if(header->header_size > sizeof(header)) {
+    if(header->header_size > sizeof(ConnectionHeader)) {
       // For some reason extra data was written to the header.
       // we don't know what it was, but we should get rid of it and try to move on somehow
-      size_t size = header->header_size-sizeof(header);
+      size_t size = header->header_size-sizeof(ConnectionHeader);
       char* buf = new char[size];
       socket->receive(asio::buffer(buf, size));
       delete[] buf;
+      printf("[lobby]\tRead %d extra header bytes from %s\n", size, socket->remote_endpoint().address().to_string().c_str());
     }
     switch(header->conn_type) {
     case ConnCliToGate:

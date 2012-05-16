@@ -21,10 +21,10 @@ wondruss::auth_slave::auth_slave(asio::io_service& io_service)
   char buf[3] = {0};
   fdsock.receive(asio::buffer(buf, 2)); //TODO: timeout
   if(strcmp(buf, "OK") != 0) {
-    puts("Auth gave us a bad startup msg. WTF?\n");
+    printf("[lobby]\tAuth process gave us a bad startup msg. WTF?\n");
     // TODO: fail spectacularly
   } else
-    puts("Auth startup OK! continuing...\n");
+    printf("[lobby]\tAuth startup OK! continuing...\n");
 }
 
 void wondruss::auth_slave::handleClient(std::unique_ptr<asio::ip::tcp::socket> sock)
@@ -50,5 +50,5 @@ void wondruss::auth_slave::handleClient(std::unique_ptr<asio::ip::tcp::socket> s
   msg.msg_controllen = cmsg->cmsg_len;
 
   if(sendmsg(fdsock.native(), &msg, 0) < 0)
-    printf("sendmsg failed: %s\n", strerror(errno));
+    printf("[lobby]\tsendmsg failed: %s\n", strerror(errno));
 }

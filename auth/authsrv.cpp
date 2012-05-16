@@ -3,7 +3,6 @@
 wondruss::authsrv::authsrv(asio::io_service& io_service, int fd)
   : listen(io_service, asio::local::stream_protocol(), fd)
 {
-  puts("Auth startup!\n");
   listen.send(asio::buffer("OK", 2));
   listen.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&authsrv::handle_new_socket), this, std::placeholders::_1));
 }
@@ -11,11 +10,11 @@ wondruss::authsrv::authsrv(asio::io_service& io_service, int fd)
 void wondruss::authsrv::handle_new_socket(const asio::error_code& error)
 {
   if (error) {
-    puts("Error receiving new socket!\n");
+    printf("[auth]\tError receiving new socket!\n");
     // TODO: better error handling
   } else {
+    printf("[auth]\tReceiving new socket from lobby\n");
     char data[2], control[CMSG_SPACE(4)];
-    puts("Holy crap, it's a socket!\n");
     struct msghdr msg;
     struct cmsghdr* cmsg;
     struct iovec iov;
@@ -34,13 +33,14 @@ void wondruss::authsrv::handle_new_socket(const asio::error_code& error)
     cmsg->cmsg_type = SCM_RIGHTS;
 
     if(recvmsg(listen.native(), &msg, MSG_WAITALL) < 0) {
-      printf("recvmsg error: %s\n", strerror(errno));
+      printf("[auth]\tGot recvmsg error: %s\n", strerror(errno));
     } else {
       cmsg = CMSG_FIRSTHDR(&msg);
       if(cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
         int fd = *((int*)CMSG_DATA(cmsg));
-        close(fd);
-        puts("Got a socket and closed it! we're awesome!");
+        asio::ip::tcp::socket new_socket(listen.get_io_service(), asio::ip::tcp::v6(), fd);
+        printf("[auth]\tSuccessfully transferred %s from lobby.\n", new_socket.remote_endpoint().address().to_string().c_str());
+        //TODO: wrap the socket in a client object
       }
     }
   }
