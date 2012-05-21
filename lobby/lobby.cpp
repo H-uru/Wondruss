@@ -2,18 +2,18 @@
 
 #include <functional>
 
-enum ConnectionType {
-  ConnCliToAuth = 10,
-  ConnCliToGame = 11,
-  ConnCliToFile = 16,
-  ConnCliToCsr  = 20,
-  ConnCliToGate = 22,
+enum class ConnectionType : uint8_t {
+  CliToAuth = 10,
+  CliToGame = 11,
+  CliToFile = 16,
+  CliToCsr  = 20,
+  CliToGate = 22,
 };
 
 #pragma pack(push, 1)
   struct ConnectionHeader 
   {
-    uint8_t conn_type;
+    ConnectionType conn_type;
     uint16_t header_size;
     uint32_t build_id, build_type, branch_id;
     uint8_t uuid[16];
@@ -67,18 +67,18 @@ void wondruss::lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& 
       char* buf = new char[size];
       socket->receive(asio::buffer(buf, size));
       delete[] buf;
-      printf("[lobby]\tRead %d extra header bytes from %s\n", size, socket->remote_endpoint().address().to_string().c_str());
+      printf("[lobby]\tRead %lu extra header bytes from %s\n", size, socket->remote_endpoint().address().to_string().c_str());
     }
     switch(header->conn_type) {
-    case ConnCliToGate:
+    case ConnectionType::CliToGate:
       break;
-    case ConnCliToAuth:
+    case ConnectionType::CliToAuth:
       auth->handleClient(std::move(socket));
       break;
-    case ConnCliToGame:
+    case ConnectionType::CliToGame:
       break;
-    case ConnCliToFile:
-    case ConnCliToCsr:
+    case ConnectionType::CliToFile:
+    case ConnectionType::CliToCsr:
     default:
       //TODO: print a warning
       break;
