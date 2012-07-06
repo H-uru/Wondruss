@@ -37,6 +37,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG ${CMAKE_CXX_FLAGS_DEBUG}")
 find_package(Threads REQUIRED)
 
 include_directories("${CMAKE_SOURCE_DIR}/asio")
+include_directories("${CMAKE_SOURCE_DIR}")
 add_pch_rule("${CMAKE_SOURCE_DIR}/asio/asio.hpp" ASIO_PCH)
 add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp lobby.cpp ${ASIO_PCH})
 add_executable(wondruss_auth auth/authsrv.cpp auth.cpp ${ASIO_PCH})

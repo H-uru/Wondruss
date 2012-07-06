@@ -16,7 +16,7 @@ enum class ConnectionType : uint8_t {
     ConnectionType conn_type;
     uint16_t header_size;
     uint32_t build_id, build_type, branch_id;
-    uint8_t uuid[16];
+    uint8_t product_id[16]; // TODO: UUID type
   };
 #pragma pack(pop)
 
@@ -73,7 +73,7 @@ void wondruss::lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& 
     case ConnectionType::CliToGate:
       break;
     case ConnectionType::CliToAuth:
-      auth->handleClient(std::move(socket));
+      auth->handleClient(std::move(socket)); // TODO: fail if we have no auth on this host
       break;
     case ConnectionType::CliToGame:
       break;

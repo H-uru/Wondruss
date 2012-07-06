@@ -1,5 +1,24 @@
 #include "authsrv.hpp"
 
+#pragma pack(push, 1)
+  struct AuthConnectionHeader
+  {
+    uint32_t header_size;
+    uint8_t uuid[16];
+  };
+#pragma pack(pop)
+
+static void handle_protocol_cruft(asio::ip::tcp::socket& sock)
+{
+  AuthConnectionHeader hdr;
+  sock.receive(asio::buffer(&hdr, sizeof(AuthConnectionHeader)));
+  if (hdr.header_size != sizeof(AuthConnectionHeader))
+    printf("[auth]\tReceived an incorrectly-sized auth header\n");
+  else
+    printf("[auth]\tMoving on...\n");
+  
+}
+
 wondruss::authsrv::authsrv(asio::io_service& io_service, int fd)
   : listen(io_service, asio::local::stream_protocol(), fd)
 {
@@ -40,7 +59,10 @@ void wondruss::authsrv::handle_new_socket(const asio::error_code& error)
         int fd = *((int*)CMSG_DATA(cmsg));
         asio::ip::tcp::socket new_socket(listen.get_io_service(), asio::ip::tcp::v6(), fd);
         printf("[auth]\tSuccessfully transferred %s from lobby.\n", new_socket.remote_endpoint().address().to_string().c_str());
-        //TODO: wrap the socket in a client object
+        handle_protocol_cruft(new_socket);
+
+        std::unique_ptr<client> new_client(new client(std::move(new_socket)));
+        // TODO: listen on the client
       }
     }
   }
