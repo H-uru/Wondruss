@@ -114,24 +114,33 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
     return;
   }
 
-  CliToAuth msgid = client->read<CliToAuth>();
-  LOG_DEBUG("Got message ", uint16_t(msgid), " from client ", client->name());
-  switch(msgid) {
-    case CliToAuth::PingRequest:
-      handle_ping(client);
-      break;
-    case CliToAuth::ClientRegisterRequest:
-      handle_client_register(client);
-      break;
-    case CliToAuth::AcctLoginRequest:
-      handle_acct_login(client);
-      break;
-    default:
-      murder_client(client);
-      return;
+  try {
+    CliToAuth msgid = client->read<CliToAuth>();
+    LOG_DEBUG("Got message ", uint16_t(msgid), " from client ", client->name());
+    switch(msgid) {
+      case CliToAuth::PingRequest:
+        handle_ping(client);
+        break;
+      case CliToAuth::ClientRegisterRequest:
+        handle_client_register(client);
+        break;
+      case CliToAuth::AcctLoginRequest:
+        handle_acct_login(client);
+        break;
+      default:
+        murder_client(client);
+        return;
+    }
+
+    // Send the buffer we've been accumulating out to the client
+    client->flush();
+
+  } catch (asio::system_error e) {
+    LOG_ERROR("Got ", e.what(), " while reading from ", client->name());
+    murder_client(client);
+    return;
   }
 
-  client->flush();
   client->async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_client_message), this, client, std::placeholders::_1));
 }
 

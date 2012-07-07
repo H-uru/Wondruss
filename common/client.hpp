@@ -25,8 +25,8 @@ namespace Wondruss {
       }
     }
 
-    const char* address() const {
-      return socket.remote_endpoint().address().to_string().c_str();
+    std::string address() const {
+      return socket.remote_endpoint().address().to_string();
     }
 
     //TODO: encryption

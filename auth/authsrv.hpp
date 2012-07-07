@@ -12,11 +12,11 @@ namespace Wondruss {
     struct Client : public Wondruss::Client {
       Client(asio::ip::tcp::socket&&s) : Wondruss::Client(std::move(s)) {}
 
-      const char* name() const {
+      std::string name() const {
         if(account.size() == 0)
           return address();
         else
-          return account.c_str();
+          return address() + " <" + account + ">";
       }
 
       uint32_t build_id;
