@@ -127,6 +127,9 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
       case CliToAuth::AcctLoginRequest:
         handle_acct_login(client);
         break;
+      case CliToAuth::AcctSetPlayerRequest:
+        handle_set_player(client);
+        break;
       default:
         murder_client(client);
         return;
@@ -204,4 +207,13 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   client->write<uint32_t>(0); // billing type
   uint32_t dummy_droid[4];
   client->send(asio::buffer(dummy_droid, 16));
+}
+
+void Wondruss::AuthSrv::handle_set_player(Wondruss::AuthSrv::Client* client)
+{
+  uint32_t trans = client->read<uint32_t>();
+  client->read<uint32_t>(); // player ID
+  client->write(AuthToCli::AcctSetPlayerReply);
+  client->write(trans);
+  client->write<uint32_t>(0); // net success
 }

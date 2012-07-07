@@ -37,6 +37,7 @@ namespace Wondruss {
     void handle_ping(Client*);
     void handle_client_register(Client*);
     void handle_acct_login(Client*);
+    void handle_set_player(Client*);
 
     asio::local::stream_protocol::socket listen;
     std::set<std::unique_ptr<Client>> clients;
