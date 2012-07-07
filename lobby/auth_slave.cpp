@@ -1,6 +1,7 @@
 #include "auth_slave.hpp"
+#include "common/logger.hpp"
 
-wondruss::auth_slave::auth_slave(asio::io_service& io_service)
+Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
   : fdsock(io_service)
 {
   asio::local::stream_protocol::socket child_sock(io_service);
@@ -21,13 +22,13 @@ wondruss::auth_slave::auth_slave(asio::io_service& io_service)
   char buf[3] = {0};
   fdsock.receive(asio::buffer(buf, 2)); //TODO: timeout
   if(strcmp(buf, "OK") != 0) {
-    printf("[lobby]\tAuth process gave us a bad startup msg. WTF?\n");
+    LOG_FATAL("Auth process gave us a bad startup msg. WTF?");
     // TODO: fail spectacularly
   } else
-    printf("[lobby]\tAuth startup OK! continuing...\n");
+    LOG_INFO("Auth startup OK! continuing...");
 }
 
-void wondruss::auth_slave::handleClient(std::unique_ptr<asio::ip::tcp::socket> sock)
+void Wondruss::auth_slave::handle_client(std::unique_ptr<asio::ip::tcp::socket> sock)
 {
   struct msghdr msg;
   struct cmsghdr *cmsg;
@@ -50,5 +51,5 @@ void wondruss::auth_slave::handleClient(std::unique_ptr<asio::ip::tcp::socket> s
   msg.msg_controllen = cmsg->cmsg_len;
 
   if(sendmsg(fdsock.native(), &msg, 0) < 0)
-    printf("[lobby]\tsendmsg failed: %s\n", strerror(errno));
+    LOG_ERROR("Could not send socket to auth: ", strerror(errno));
 }

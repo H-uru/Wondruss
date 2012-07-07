@@ -6,11 +6,11 @@
 
 struct ConnectionHeader;
 
-namespace wondruss
+namespace Wondruss
 {
-  class lobby {
+  class Lobby {
   public:
-    lobby(asio::io_service&);
+    Lobby(asio::io_service&);
   private:
     void start_accept();
     void handle_accept(std::unique_ptr<asio::ip::tcp::socket>&, const asio::error_code&);

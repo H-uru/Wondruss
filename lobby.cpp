@@ -1,8 +1,9 @@
 #include "lobby/lobby.hpp"
+#include "common/logger.hpp"
 
 int main(int argc, char** argv) {
-  //TODO: setup some sort of logging provider
+  Wondruss::Logger::init("org.guildofwriters.wondruss.lobby");
   asio::io_service io_service;
-  wondruss::lobby lobby(io_service);
+  Wondruss::Lobby lobby(io_service);
   io_service.run();
 }
