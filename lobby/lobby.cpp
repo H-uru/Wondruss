@@ -36,18 +36,17 @@ Wondruss::Lobby::Lobby(asio::io_service& io_service)
 void Wondruss::Lobby::start_accept()
 {
   asio::ip::tcp::socket* socket = new asio::ip::tcp::socket(acceptor.get_io_service());
-  acceptor.async_accept(*socket, std::bind(std::mem_fn(&Lobby::handle_accept), this, std::unique_ptr<asio::ip::tcp::socket>(socket), std::placeholders::_1));
+  acceptor.async_accept(*socket, std::bind(std::mem_fn(&Lobby::handle_accept), this, socket, std::placeholders::_1));
 }
 
-void Wondruss::Lobby::handle_accept(std::unique_ptr<asio::ip::tcp::socket>& socket, const asio::error_code& error)
+void Wondruss::Lobby::handle_accept(asio::ip::tcp::socket* socket, const asio::error_code& error)
 {
   if (!error) {
     LOG_INFO("Got connection from ", socket->remote_endpoint().address().to_string().c_str());
     ConnectionHeader* hdr = new ConnectionHeader;
     int oldflags = fcntl(socket->native(), F_GETFD, 0);
     fcntl(socket->native(), F_SETFD, FD_CLOEXEC | oldflags);
-    asio::ip::tcp::socket* s = socket.get();
-    s->async_receive(asio::buffer(hdr, sizeof(ConnectionHeader)), std::bind(std::mem_fn(&Lobby::handle_con_header), this, std::move(socket), std::unique_ptr<ConnectionHeader>(hdr), std::placeholders::_1, std::placeholders::_2));
+    socket->async_receive(asio::buffer(hdr, sizeof(ConnectionHeader)), std::bind(std::mem_fn(&Lobby::handle_con_header), this, socket, hdr, std::placeholders::_1, std::placeholders::_2));
   } else {
     LOG_FATAL("Error on accept socket");
     // TODO: better error handling here
@@ -55,7 +54,7 @@ void Wondruss::Lobby::handle_accept(std::unique_ptr<asio::ip::tcp::socket>& sock
   start_accept();
 }
 
-void Wondruss::Lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& socket, std::unique_ptr<ConnectionHeader>& header, const asio::error_code& error, size_t bytes)
+void Wondruss::Lobby::handle_con_header(asio::ip::tcp::socket* socket, ConnectionHeader* header, const asio::error_code& error, size_t bytes)
 {
   if (error) {
     LOG_ERROR("Got error on header read from ", socket->remote_endpoint().address().to_string().c_str());
@@ -74,7 +73,7 @@ void Wondruss::Lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& 
     case ConnectionType::CliToGate:
       break;
     case ConnectionType::CliToAuth:
-      auth->handle_client(std::move(socket)); // TODO: fail if we have no auth on this host
+      auth->handle_client(socket); // TODO: fail if we have no auth on this host
       break;
     case ConnectionType::CliToGame:
       break;
@@ -85,4 +84,6 @@ void Wondruss::Lobby::handle_con_header(std::unique_ptr<asio::ip::tcp::socket>& 
       break;
     }
   }
+  delete socket;
+  delete header;
 }

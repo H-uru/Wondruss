@@ -28,7 +28,7 @@ Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
     LOG_INFO("Auth startup OK! continuing...");
 }
 
-void Wondruss::auth_slave::handle_client(std::unique_ptr<asio::ip::tcp::socket> sock)
+void Wondruss::auth_slave::handle_client(asio::ip::tcp::socket*sock)
 {
   struct msghdr msg;
   struct cmsghdr *cmsg;
