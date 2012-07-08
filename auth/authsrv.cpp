@@ -139,7 +139,7 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
     client->flush();
 
   } catch (asio::system_error e) {
-    LOG_ERROR("Got ", e.what(), " while reading from ", client->address());
+    LOG_ERROR(e.what(), " while reading from socket for ", client->account);
     murder_client(client);
     return;
   }
