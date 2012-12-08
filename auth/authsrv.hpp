@@ -1,12 +1,12 @@
 #include "common/asio.hpp"
 #include "common/client.hpp"
+#include "common/msgs.hpp"
 
 #include <boost/uuid/uuid.hpp>
 
 #include <set>
 
 namespace Wondruss {
-  struct MessageBase;
 
   class AuthSrv {
   public:
@@ -36,7 +36,7 @@ namespace Wondruss {
     void handle_client_message(Client*, const asio::error_code&);
     void murder_client(Client*, bool);
 
-    void send_message(boost::uuids::uuid, MessageBase*, std::function<void(MessageBase*)>);
+    void send_message(boost::uuids::uuid, MessageId, Message*, std::function<void(MessageId, Message*)>);
     void handle_message(const asio::error_code&);
 
     // message functions
@@ -49,6 +49,6 @@ namespace Wondruss {
     asio::local::stream_protocol::socket rdsock;
     asio::local::stream_protocol::socket wrsock;
     std::set<std::unique_ptr<Client>> clients;
-    std::map<uint32_t, std::function<void(MessageBase*)>> callbacks;
+    std::map<uint32_t, std::function<void(MessageId, Message*)>> callbacks;
   };
 }

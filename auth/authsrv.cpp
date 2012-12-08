@@ -2,7 +2,6 @@
 #include "common/fds.hpp"
 #include "common/logger.hpp"
 #include "common/netenums.hpp"
-#include "common/db_msgs.hpp"
 
 // Shamelessly stolen from Dirtsand
 enum class CliToAuth : uint16_t {
@@ -151,18 +150,21 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
   client->async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_client_message), this, client, std::placeholders::_1));
 }
 
-void Wondruss::AuthSrv::send_message(boost::uuids::uuid dest, MessageBase* msg, std::function<void(MessageBase*)> callback)
+void Wondruss::AuthSrv::send_message(boost::uuids::uuid dest, MessageId id, Message* msg, std::function<void(MessageId, Message*)> callback)
 {
   static uint32_t trans=0;
   trans++;
+
+  std::stringstream stream;
+  msg->SerializeToOstream(&stream);
   MessageHeader header;
   header.transaction = trans;
-  header.size = msg->size();
-  header.message = msg->id();
+  header.size = stream.str().size();
+  header.message = id;
   header.destination = dest;
   header.sender = boost::uuids::uuid(); // TODO: use my own UUID
   wrsock.send(asio::buffer(&header, sizeof(header)));
-  msg->write(wrsock);
+  wrsock.send(asio::buffer(stream.str().data(), header.size));
   callbacks[trans] = callback;
 }
 
@@ -170,10 +172,10 @@ void Wondruss::AuthSrv::handle_message(const asio::error_code& error)
 {
   MessageHeader header;
   rdsock.receive(asio::buffer(&header, sizeof(header)));
-  if(header.message > Message::ResponseBase) {
-    MessageBase* response = nullptr;
+  if(header.message > MessageId::ResponseBase) {
+    Message* response = nullptr;
     switch(header.message) {
-    case Message::DbLoginResponse:
+    case MessageId::DbLoginResponse:
       response = new Db::LoginResponseMsg;
       break;
     default:
@@ -182,8 +184,8 @@ void Wondruss::AuthSrv::handle_message(const asio::error_code& error)
     }
 
     if(response) {
-      response->read(rdsock);
-      callbacks[header.transaction](response);
+      response->ParseFromFileDescriptor(rdsock.native());
+      callbacks[header.transaction](header.message, response);
       callbacks.erase(header.transaction);
       delete response;
     }
@@ -254,19 +256,20 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   uint32_t trans = client->read<uint32_t>();
   client->client_challenge = client->read<uint32_t>();
   client->account = client->read<std::string>();
-  std::array<uint32_t, 5> pass_hash;
-  client->receive(asio::buffer(pass_hash.data(), 20));
+  std::string pass_hash;
+  pass_hash.resize(20, ' ');
+  client->receive(asio::buffer(const_cast<char*>(pass_hash.data()), 20));
   std::string token = client->read<std::string>();
   std::string os = client->read<std::string>();
 
   Db::LoginRequestMsg request;
-  request.username = client->account;
-  request.password = pass_hash;
+  request.set_username(client->account);
+  request.set_password(pass_hash);
 
   // TODO: send this to the DB host
-  send_message(boost::uuids::uuid(), &request, [=] (MessageBase* response) {
-    if(response->id() != Message::DbLoginResponse) {
-      LOG_ERROR("Expecting DbLoginResponse, got: ", uint32_t(response->id()));
+  send_message(boost::uuids::uuid(), MessageId::DbLoginRequest, &request, [=] (MessageId id, Message* response) {
+    if(id != MessageId::DbLoginResponse) {
+      LOG_ERROR("Expecting DbLoginResponse, got: ", uint32_t(id));
       // TODO: send error to client
     }
     Db::LoginResponseMsg* login = static_cast<Db::LoginResponseMsg*>(response);

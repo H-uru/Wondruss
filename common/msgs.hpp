@@ -2,11 +2,14 @@
 #define wondruss_common_msgs_hpp
 
 #include "common/asio.hpp"
+#include "db.pb.h"
 
 #include <boost/uuid/uuid.hpp>
 
+using google::protobuf::Message;
+
 namespace Wondruss {
-  enum class Message : uint32_t {
+  enum class MessageId : uint32_t {
     DbLoginRequest,
     // Responses below here
     ResponseBase,
@@ -17,15 +20,7 @@ namespace Wondruss {
     boost::uuids::uuid sender;
     uint32_t transaction;
     uint32_t size;
-    Message message;
-  };
-
-  struct MessageBase {
-    virtual ~MessageBase();
-    virtual void read(asio::local::stream_protocol::socket&) =0;
-    virtual void write(asio::local::stream_protocol::socket&) =0;
-    virtual uint32_t size() =0;
-    virtual Message id() =0;
+    MessageId message;
   };
 }
 

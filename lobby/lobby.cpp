@@ -90,7 +90,7 @@ void Wondruss::Lobby::handle_con_header(asio::ip::tcp::socket* socket, Connectio
 }
 
 void Wondruss::Lobby::dispatch_message(MessageHeader header, asio::mutable_buffers_1 buf) {
-  if(header.message > Message::ResponseBase) {
+  if(header.message > MessageId::ResponseBase) {
     LOG_DEBUG("Dispatching message to auth");
     auth->send_message(header, buf);
   } else {

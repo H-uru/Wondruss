@@ -10,13 +10,15 @@ Wondruss::DbSrv::DbSrv(asio::io_service& io_service)
   //TODO: listen on rdsock for messages from other processes
 }
 
-void Wondruss::DbSrv::send_response(MessageHeader header, MessageBase* msg)
+void Wondruss::DbSrv::send_response(MessageHeader header, MessageId id, Message* msg)
 {
+  std::stringstream stream;
+  msg->SerializeToOstream(&stream);
   std::swap(header.destination, header.sender);
-  header.size = msg->size();
-  header.message = msg->id();
+  header.size = stream.str().size();
+  header.message = id;
   wrsock.send(asio::buffer(&header, sizeof(header)));
-  msg->write(wrsock);
+  wrsock.send(asio::buffer(stream.str().data(), header.size));
 }
 
 void Wondruss::DbSrv::handle_message(const asio::error_code& error)
@@ -24,9 +26,9 @@ void Wondruss::DbSrv::handle_message(const asio::error_code& error)
   MessageHeader header;
   rdsock.receive(asio::buffer(&header, sizeof(header)));
   switch(header.message) {
-  case Message::DbLoginRequest: {
+  case MessageId::DbLoginRequest: {
     Db::LoginRequestMsg msg;
-    msg.read(rdsock);
+    msg.ParseFromFileDescriptor(rdsock.native());
     handle_login_request(header, msg);
     break;
   }
@@ -41,6 +43,6 @@ void Wondruss::DbSrv::handle_message(const asio::error_code& error)
 void Wondruss::DbSrv::handle_login_request(const MessageHeader& header, const Db::LoginRequestMsg& request) {
   LOG_DEBUG("Got login request at DB");
   Db::LoginResponseMsg response;
-  response.ok = 1;
-  send_response(header, &response);
+  response.set_result(1);
+  send_response(header, MessageId::DbLoginResponse, &response);
 }

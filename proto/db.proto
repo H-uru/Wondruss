@@ -1,0 +1,10 @@
+package Wondruss.Db;
+
+message LoginRequestMsg {
+  required string username = 1;
+  required bytes password = 2;
+}
+
+message LoginResponseMsg {
+  required uint32 result = 1;
+}
