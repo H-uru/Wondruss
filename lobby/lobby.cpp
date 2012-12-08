@@ -29,6 +29,7 @@ Wondruss::Lobby::Lobby(asio::io_service& io_service)
   fcntl(acceptor.native(), F_SETFD, FD_CLOEXEC | oldflags);
   //TODO: only launch gate/auth when we're the master host
   auth = std::unique_ptr<auth_slave>(new auth_slave(io_service));
+  db = std::unique_ptr<db_slave>(new db_slave(io_service));
   // TODO: do we need to connect to a master host?
   start_accept();
 }

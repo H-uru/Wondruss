@@ -1,4 +1,5 @@
 #include "auth_slave.hpp"
+#include "db_slave.hpp"
 #include "common/asio.hpp"
 
 #include <set>
@@ -18,5 +19,6 @@ namespace Wondruss
 
     asio::ip::tcp::acceptor acceptor;
     std::unique_ptr<auth_slave> auth;
+    std::unique_ptr<db_slave> db;
   };
 }
