@@ -1,7 +1,5 @@
 #include "common/asio.hpp"
 
-#include <memory>
-
 namespace Wondruss
 {
   class auth_slave

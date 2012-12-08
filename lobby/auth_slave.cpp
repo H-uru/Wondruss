@@ -22,11 +22,11 @@ Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
       child_fdsock.send(asio::buffer("KO", 0));
       exit(0);
     }
-    if(FD_SLV_TO_LBY != dup2(child_rdsock.native(), FD_SLV_TO_LBY)) {
+    if(FD_LBY_TO_SLV != dup2(child_rdsock.native(), FD_LBY_TO_SLV)) {
       child_fdsock.send(asio::buffer("KO", 0));
       exit(0);
     }
-    if(FD_LBY_TO_SLV != dup2(child_wrsock.native(), FD_LBY_TO_SLV)) {
+    if(FD_SLV_TO_LBY != dup2(child_wrsock.native(), FD_SLV_TO_LBY)) {
       child_fdsock.send(asio::buffer("KO", 0));
       exit(0);
     }
