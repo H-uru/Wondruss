@@ -151,9 +151,16 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
 
 void Wondruss::AuthSrv::murder_client(Client* client)
 {
-  clients.erase(std::find_if(clients.begin(), clients.end(), [&client] (const std::unique_ptr<Client>& ptr) {
-    return ptr.get() == client;
-  }));
+  LOG_DEBUG("Murdering that asshat, ", client->name());
+  auto it = std::find_if(clients.begin(), clients.end(),
+    [&client] (const std::unique_ptr<Client>& ptr) {
+      return ptr.get() == client;
+    }
+  );
+  if (it == clients.end())
+    LOG_ERROR("What that tits?! ", client->name(), " isn't in the set?");
+  else
+    clients.erase(it);
 }
 
 void Wondruss::AuthSrv::handle_ping(Client* client)
