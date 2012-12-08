@@ -2,7 +2,7 @@
 #define WONDRUSS_COMMON_ENUMS
 
 namespace Wondruss {
-  enum NetStatus {
+  enum class NetStatus : uint32_t {
     Success,
     InternalError,
     Timeout,
