@@ -192,7 +192,7 @@ void Wondruss::AuthSrv::murder_client(Client* client, bool kick)
   else {
     if (kick) {
       client->write(AuthToCli::KickedOff);
-      client->write<uint32_t>(NetStatus::Disconnected);
+      client->write(NetStatus::Disconnected);
     }
     clients.erase(it);
   }
@@ -247,7 +247,7 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   send_message(client->account, [=] (std::string msg) {
     client->write(AuthToCli::AcctLoginReply);
     client->write(trans);
-    client->write<uint32_t>(NetStatus::Success); // net success
+    client->write(NetStatus::Success); // net success
     client->send(asio::buffer(client->account_uuid, 16));
     client->write<uint32_t>(0); // flags
     client->write<uint32_t>(0); // billing type
@@ -263,5 +263,5 @@ void Wondruss::AuthSrv::handle_set_player(Wondruss::AuthSrv::Client* client)
   client->read<uint32_t>(); // player ID
   client->write(AuthToCli::AcctSetPlayerReply);
   client->write(trans);
-  client->write<uint32_t>(NetStatus::Success);
+  client->write(NetStatus::Success);
 }
