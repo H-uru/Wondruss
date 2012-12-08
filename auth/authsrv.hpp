@@ -6,7 +6,7 @@
 namespace Wondruss {
   class AuthSrv {
   public:
-    AuthSrv(asio::io_service&, int);
+    AuthSrv(asio::io_service&);
   private:
     struct Client : public Wondruss::Client {
       Client(asio::ip::tcp::socket&&s) : Wondruss::Client(std::move(s)) {}
@@ -39,6 +39,8 @@ namespace Wondruss {
     void handle_set_player(Client*);
 
     asio::local::stream_protocol::socket listen;
+    asio::local::stream_protocol::socket rdsock;
+    asio::local::stream_protocol::socket wrsock;
     std::set<std::unique_ptr<Client>> clients;
   };
 }

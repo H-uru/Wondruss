@@ -12,5 +12,9 @@ namespace Wondruss
 
   private:
     asio::local::stream_protocol::socket fdsock;
+    asio::local::stream_protocol::socket rdsock;
+    asio::local::stream_protocol::socket wrsock;
+
+    void handle_slave_msg(const asio::error_code&);
   };
 }

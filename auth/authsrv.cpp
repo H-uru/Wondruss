@@ -1,4 +1,5 @@
 #include "authsrv.hpp"
+#include "common/fds.hpp"
 #include "common/logger.hpp"
 
 // Shamelessly stolen from Dirtsand
@@ -55,11 +56,12 @@ static void handle_protocol_cruft(asio::ip::tcp::socket& sock)
   // TODO: handle this failure
 }
 
-Wondruss::AuthSrv::AuthSrv(asio::io_service& io_service, int fd)
-  : listen(io_service, asio::local::stream_protocol(), fd)
+Wondruss::AuthSrv::AuthSrv(asio::io_service& io_service)
+  : listen(io_service, asio::local::stream_protocol(), FD_SOCKETS), rdsock(io_service, asio::local::stream_protocol(), FD_LBY_TO_SLV), wrsock(io_service, asio::local::stream_protocol(), FD_SLV_TO_LBY)
 {
   listen.send(asio::buffer("OK", 2));
   listen.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_new_socket), this, std::placeholders::_1));
+  //TODO: listen on rdsock for messages from other processes
 }
 
 void Wondruss::AuthSrv::handle_new_socket(const asio::error_code& error)
