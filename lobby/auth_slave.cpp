@@ -1,9 +1,10 @@
 #include "auth_slave.hpp"
+#include "lobby.hpp"
 #include "common/fds.hpp"
 #include "common/logger.hpp"
 
-Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
-  : fdsock(io_service), rdsock(io_service), wrsock(io_service)
+Wondruss::auth_slave::auth_slave(asio::io_service& io_service, Lobby* lobby)
+  : lobby(lobby), fdsock(io_service), rdsock(io_service), wrsock(io_service)
 {
   asio::local::stream_protocol::socket child_fdsock(io_service);
   asio::local::stream_protocol::socket child_rdsock(io_service);
@@ -77,19 +78,19 @@ void Wondruss::auth_slave::handle_client(asio::ip::tcp::socket*sock)
 
 void Wondruss::auth_slave::handle_slave_msg(const asio::error_code& error)
 {
-  uint32_t trans;
-  uint32_t len;
-  char* msg;
-  rdsock.receive(asio::buffer(&trans, 4));
-  rdsock.receive(asio::buffer(&len, 4));
-  msg = new char[len+1];
-  msg[len] = 0;
-  LOG_DEBUG("Transaction: ", trans, " Length: ", len);
-  LOG_DEBUG("Bouncing message: ", msg);
-  rdsock.receive(asio::buffer(msg, len));
-  wrsock.send(asio::buffer(&trans, 4));
-  wrsock.send(asio::buffer(&len, 4));
-  wrsock.send(asio::buffer(msg, len));
-  delete[] msg;
+  MessageHeader header;
+  rdsock.receive(asio::buffer(&header, sizeof(header)));
+  char* buf;
+  buf = new char[header.size];
+  asio::mutable_buffers_1 buffer = asio::buffer(buf, header.size);
+  rdsock.receive(buffer);
+  lobby->dispatch_message(header, buffer);
+  delete[] buf;
   rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&auth_slave::handle_slave_msg), this, std::placeholders::_1));
+}
+
+void Wondruss::auth_slave::send_message(MessageHeader header, asio::mutable_buffers_1 buf)
+{
+  wrsock.send(asio::buffer(&header, sizeof(header)));
+  wrsock.send(buf);
 }

@@ -28,8 +28,8 @@ Wondruss::Lobby::Lobby(asio::io_service& io_service)
   int oldflags = fcntl(acceptor.native(), F_GETFD, 0);
   fcntl(acceptor.native(), F_SETFD, FD_CLOEXEC | oldflags);
   //TODO: only launch gate/auth when we're the master host
-  auth = std::unique_ptr<auth_slave>(new auth_slave(io_service));
-  db = std::unique_ptr<db_slave>(new db_slave(io_service));
+  auth = std::unique_ptr<auth_slave>(new auth_slave(io_service, this));
+  db = std::unique_ptr<db_slave>(new db_slave(io_service, this));
   // TODO: do we need to connect to a master host?
   start_accept();
 }
@@ -87,4 +87,14 @@ void Wondruss::Lobby::handle_con_header(asio::ip::tcp::socket* socket, Connectio
   }
   delete socket;
   delete header;
+}
+
+void Wondruss::Lobby::dispatch_message(MessageHeader header, asio::mutable_buffers_1 buf) {
+  if(header.message > Message::ResponseBase) {
+    LOG_DEBUG("Dispatching message to auth");
+    auth->send_message(header, buf);
+  } else {
+    LOG_DEBUG("Dispatching message to db");
+    db->send_message(header, buf);
+  }
 }

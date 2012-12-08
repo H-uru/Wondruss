@@ -2,6 +2,7 @@
 #include "common/fds.hpp"
 #include "common/logger.hpp"
 #include "common/netenums.hpp"
+#include "common/db_msgs.hpp"
 
 // Shamelessly stolen from Dirtsand
 enum class CliToAuth : uint16_t {
@@ -150,32 +151,46 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
   client->async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_client_message), this, client, std::placeholders::_1));
 }
 
-void Wondruss::AuthSrv::send_message(const std::string& msg, std::function<void(std::string)> callback)
+void Wondruss::AuthSrv::send_message(boost::uuids::uuid dest, MessageBase* msg, std::function<void(MessageBase*)> callback)
 {
-  uint32_t trans=0;
+  static uint32_t trans=0;
   trans++;
-  uint32_t len;
-  len = msg.size();
-  wrsock.send(asio::buffer(&trans, 4));
-  wrsock.send(asio::buffer(&len, 4));
-  wrsock.send(asio::buffer(msg.c_str(), len));
+  MessageHeader header;
+  header.transaction = trans;
+  header.size = msg->size();
+  header.message = msg->id();
+  header.destination = dest;
+  header.sender = boost::uuids::uuid(); // TODO: use my own UUID
+  wrsock.send(asio::buffer(&header, sizeof(header)));
+  msg->write(wrsock);
   callbacks[trans] = callback;
 }
 
 void Wondruss::AuthSrv::handle_message(const asio::error_code& error)
 {
-  // TODO: Handle requests as well as responses here
-  uint32_t trans;
-  uint32_t len;
-  char* msg;
-  rdsock.receive(asio::buffer(&trans, 4));
-  rdsock.receive(asio::buffer(&len, 4));
-  msg = new char[len+1];
-  msg[len] = 0;
-  rdsock.receive(asio::buffer(msg, len));
-  callbacks[trans](msg);
-  callbacks.erase(trans);
-  delete[] msg;
+  MessageHeader header;
+  rdsock.receive(asio::buffer(&header, sizeof(header)));
+  if(header.message > Message::ResponseBase) {
+    MessageBase* response = nullptr;
+    switch(header.message) {
+    case Message::DbLoginResponse:
+      response = new Db::LoginResponseMsg;
+      break;
+    default:
+      LOG_ERROR("Got unknown response id: ", uint32_t(header.message));
+      // TODO: Use the size() field to purge the message from the queue
+    }
+
+    if(response) {
+      response->read(rdsock);
+      callbacks[header.transaction](response);
+      callbacks.erase(header.transaction);
+      delete response;
+    }
+  } else {
+    LOG_ERROR("AuthSrv does not yet support request messages");
+    // Handle request
+  }
   rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_message), this, std::placeholders::_1));
 }
 
@@ -239,12 +254,23 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   uint32_t trans = client->read<uint32_t>();
   client->client_challenge = client->read<uint32_t>();
   client->account = client->read<std::string>();
-  uint32_t pass_hash[5];
-  client->receive(asio::buffer(pass_hash, 20));
+  std::array<uint32_t, 5> pass_hash;
+  client->receive(asio::buffer(pass_hash.data(), 20));
   std::string token = client->read<std::string>();
   std::string os = client->read<std::string>();
 
-  send_message(client->account, [=] (std::string msg) {
+  Db::LoginRequestMsg request;
+  request.username = client->account;
+  request.password = pass_hash;
+
+  // TODO: send this to the DB host
+  send_message(boost::uuids::uuid(), &request, [=] (MessageBase* response) {
+    if(response->id() != Message::DbLoginResponse) {
+      LOG_ERROR("Expecting DbLoginResponse, got: ", uint32_t(response->id()));
+      // TODO: send error to client
+    }
+    Db::LoginResponseMsg* login = static_cast<Db::LoginResponseMsg*>(response);
+    // TODO: check login and respond to the client appropriately
     client->write(AuthToCli::AcctLoginReply);
     client->write(trans);
     client->write<uint32_t>(NetStatus::Success); // net success

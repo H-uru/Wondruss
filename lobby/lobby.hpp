@@ -12,6 +12,8 @@ namespace Wondruss
   class Lobby {
   public:
     Lobby(asio::io_service&);
+
+    void dispatch_message(MessageHeader, asio::mutable_buffers_1);
   private:
     void start_accept();
     void handle_accept(asio::ip::tcp::socket*, const asio::error_code&);

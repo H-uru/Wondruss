@@ -23,7 +23,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 set(Wondruss_DEPS ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} log4cplus)
 
 include_directories("${CMAKE_SOURCE_DIR}")
-set(COMMON_SRCS common/logger.cpp)
+set(COMMON_SRCS common/logger.cpp common/msgs.cpp)
 add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp lobby/db_slave.cpp lobby.cpp ${COMMON_SRCS})
 add_executable(wondruss_auth auth/authsrv.cpp auth.cpp ${COMMON_SRCS})
 add_executable(wondruss_db db/dbsrv.cpp db.cpp ${COMMON_SRCS})
