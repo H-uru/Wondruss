@@ -134,7 +134,7 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
         handle_set_player(client);
         break;
       default:
-        murder_client(client);
+        murder_client(client, true);
         return;
     }
 
@@ -143,14 +143,14 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
 
   } catch (asio::system_error e) {
     LOG_ERROR(e.what(), " while reading from socket for ", client->account);
-    murder_client(client);
+    murder_client(client, false);
     return;
   }
 
   client->async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_client_message), this, client, std::placeholders::_1));
 }
 
-void Wondruss::AuthSrv::murder_client(Client* client)
+void Wondruss::AuthSrv::murder_client(Client* client, bool kick)
 {
   LOG_DEBUG("Murdering that asshat, ", client->name());
   auto it = std::find_if(clients.begin(), clients.end(),
@@ -160,8 +160,13 @@ void Wondruss::AuthSrv::murder_client(Client* client)
   );
   if (it == clients.end())
     LOG_ERROR("What that tits?! ", client->name(), " isn't in the set?");
-  else
+  else {
+    if (kick) {
+      client->write(AuthToCli::KickedOff);
+      client->write<uint32_t>(NetStatus::Disconnected);
+    }
     clients.erase(it);
+  }
 }
 
 void Wondruss::AuthSrv::handle_ping(Client* client)

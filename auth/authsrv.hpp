@@ -30,7 +30,7 @@ namespace Wondruss {
     // ASIO protocol callbacks
     void handle_new_socket(const asio::error_code&);
     void handle_client_message(Client*, const asio::error_code&);
-    void murder_client(Client*);
+    void murder_client(Client*, bool);
 
     // message functions
     void handle_ping(Client*);
