@@ -1,6 +1,6 @@
 #include "auth_slave.hpp"
+#include "common/asio.hpp"
 
-#include "asio.hpp"
 #include <set>
 #include <memory>
 
