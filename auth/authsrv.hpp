@@ -32,6 +32,9 @@ namespace Wondruss {
     void handle_client_message(Client*, const asio::error_code&);
     void murder_client(Client*);
 
+    void send_message(const std::string&, const std::function<void(std::string)>);
+    void handle_message(const asio::error_code&);
+
     // message functions
     void handle_ping(Client*);
     void handle_client_register(Client*);
@@ -42,5 +45,6 @@ namespace Wondruss {
     asio::local::stream_protocol::socket rdsock;
     asio::local::stream_protocol::socket wrsock;
     std::set<std::unique_ptr<Client>> clients;
+    std::map<uint32_t, std::function<void(std::string)>> callbacks;
   };
 }

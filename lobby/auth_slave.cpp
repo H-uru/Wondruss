@@ -77,5 +77,19 @@ void Wondruss::auth_slave::handle_client(asio::ip::tcp::socket*sock)
 
 void Wondruss::auth_slave::handle_slave_msg(const asio::error_code& error)
 {
-  //TODO: Read message from rdsock and pass it on to some other process
+  uint32_t trans;
+  uint32_t len;
+  char* msg;
+  rdsock.receive(asio::buffer(&trans, 4));
+  rdsock.receive(asio::buffer(&len, 4));
+  msg = new char[len+1];
+  msg[len] = 0;
+  LOG_DEBUG("Transaction: ", trans, " Length: ", len);
+  LOG_DEBUG("Bouncing message: ", msg);
+  rdsock.receive(asio::buffer(msg, len));
+  wrsock.send(asio::buffer(&trans, 4));
+  wrsock.send(asio::buffer(&len, 4));
+  wrsock.send(asio::buffer(msg, len));
+  delete[] msg;
+  rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&auth_slave::handle_slave_msg), this, std::placeholders::_1));
 }

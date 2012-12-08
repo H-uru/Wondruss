@@ -61,7 +61,7 @@ Wondruss::AuthSrv::AuthSrv(asio::io_service& io_service)
 {
   listen.send(asio::buffer("OK", 2));
   listen.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_new_socket), this, std::placeholders::_1));
-  //TODO: listen on rdsock for messages from other processes
+  rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_message), this, std::placeholders::_1));
 }
 
 void Wondruss::AuthSrv::handle_new_socket(const asio::error_code& error)
@@ -149,6 +149,35 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
   client->async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_client_message), this, client, std::placeholders::_1));
 }
 
+void Wondruss::AuthSrv::send_message(const std::string& msg, std::function<void(std::string)> callback)
+{
+  uint32_t trans=0;
+  trans++;
+  uint32_t len;
+  len = msg.size();
+  wrsock.send(asio::buffer(&trans, 4));
+  wrsock.send(asio::buffer(&len, 4));
+  wrsock.send(asio::buffer(msg.c_str(), len));
+  callbacks[trans] = callback;
+}
+
+void Wondruss::AuthSrv::handle_message(const asio::error_code& error)
+{
+  // TODO: Handle requests as well as responses here
+  uint32_t trans;
+  uint32_t len;
+  char* msg;
+  rdsock.receive(asio::buffer(&trans, 4));
+  rdsock.receive(asio::buffer(&len, 4));
+  msg = new char[len+1];
+  msg[len] = 0;
+  rdsock.receive(asio::buffer(msg, len));
+  callbacks[trans](msg);
+  callbacks.erase(trans);
+  delete[] msg;
+  rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_message), this, std::placeholders::_1));
+}
+
 void Wondruss::AuthSrv::murder_client(Client* client)
 {
   LOG_DEBUG("Murdering that asshat, ", client->name());
@@ -208,14 +237,18 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   client->receive(asio::buffer(pass_hash, 20));
   std::string token = client->read<std::string>();
   std::string os = client->read<std::string>();
-  client->write(AuthToCli::AcctLoginReply);
-  client->write(trans);
-  client->write<uint32_t>(0); // net success
-  client->send(asio::buffer(client->account_uuid, 16));
-  client->write<uint32_t>(0); // flags
-  client->write<uint32_t>(0); // billing type
-  uint32_t dummy_droid[4];
-  client->send(asio::buffer(dummy_droid, 16));
+
+  send_message(client->account, [=] (std::string msg) {
+    client->write(AuthToCli::AcctLoginReply);
+    client->write(trans);
+    client->write<uint32_t>(0); // net success
+    client->send(asio::buffer(client->account_uuid, 16));
+    client->write<uint32_t>(0); // flags
+    client->write<uint32_t>(0); // billing type
+    uint32_t dummy_droid[4];
+    client->send(asio::buffer(dummy_droid, 16));
+    client->flush();
+  });
 }
 
 void Wondruss::AuthSrv::handle_set_player(Wondruss::AuthSrv::Client* client)
