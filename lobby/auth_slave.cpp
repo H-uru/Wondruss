@@ -1,4 +1,5 @@
 #include "auth_slave.hpp"
+#include "common/fds.hpp"
 #include "common/logger.hpp"
 
 Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
@@ -11,9 +12,12 @@ Wondruss::auth_slave::auth_slave(asio::io_service& io_service)
   pid_t newpid = fork();
   if (newpid == 0) {
     io_service.notify_fork(asio::io_service::fork_child);
-    char buf[10];
-    sprintf(buf, "%u", child_sock.native());
-    execl("./wondruss_auth", "wondruss_auth", buf, nullptr);
+    if(FD_SOCKETS != dup2(child_sock.native(), FD_SOCKETS)) {
+      child_sock.send(asio::buffer("KO", 0));
+      exit(0);
+    }
+    // TODO: find wondruss_auth a bit more sanely
+    execl("./wondruss_auth", "wondruss_auth", nullptr);
     // if we get here, execl failed for some reason. Let's tell the lobby we failed.
     child_sock.send(asio::buffer("KO", 0));
     exit(0);
