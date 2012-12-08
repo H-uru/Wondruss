@@ -1,6 +1,7 @@
 #include "authsrv.hpp"
 #include "common/fds.hpp"
 #include "common/logger.hpp"
+#include "common/netenums.hpp"
 
 // Shamelessly stolen from Dirtsand
 enum class CliToAuth : uint16_t {
@@ -133,7 +134,7 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
         handle_set_player(client);
         break;
       default:
-        murder_client(client);
+        murder_client(client, true);
         return;
     }
 
@@ -142,7 +143,7 @@ void Wondruss::AuthSrv::handle_client_message(Client* client, const asio::error_
 
   } catch (asio::system_error e) {
     LOG_ERROR(e.what(), " while reading from socket for ", client->account);
-    murder_client(client);
+    murder_client(client, false);
     return;
   }
 
@@ -178,7 +179,7 @@ void Wondruss::AuthSrv::handle_message(const asio::error_code& error)
   rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&AuthSrv::handle_message), this, std::placeholders::_1));
 }
 
-void Wondruss::AuthSrv::murder_client(Client* client)
+void Wondruss::AuthSrv::murder_client(Client* client, bool kick)
 {
   LOG_DEBUG("Murdering that asshat, ", client->name());
   auto it = std::find_if(clients.begin(), clients.end(),
@@ -188,8 +189,13 @@ void Wondruss::AuthSrv::murder_client(Client* client)
   );
   if (it == clients.end())
     LOG_ERROR("What that tits?! ", client->name(), " isn't in the set?");
-  else
+  else {
+    if (kick) {
+      client->write(AuthToCli::KickedOff);
+      client->write<uint32_t>(NetStatus::Disconnected);
+    }
     clients.erase(it);
+  }
 }
 
 void Wondruss::AuthSrv::handle_ping(Client* client)
@@ -241,7 +247,7 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
   send_message(client->account, [=] (std::string msg) {
     client->write(AuthToCli::AcctLoginReply);
     client->write(trans);
-    client->write<uint32_t>(0); // net success
+    client->write<uint32_t>(NetStatus::Success); // net success
     client->send(asio::buffer(client->account_uuid, 16));
     client->write<uint32_t>(0); // flags
     client->write<uint32_t>(0); // billing type
@@ -257,5 +263,5 @@ void Wondruss::AuthSrv::handle_set_player(Wondruss::AuthSrv::Client* client)
   client->read<uint32_t>(); // player ID
   client->write(AuthToCli::AcctSetPlayerReply);
   client->write(trans);
-  client->write<uint32_t>(0); // net success
+  client->write<uint32_t>(NetStatus::Success);
 }
