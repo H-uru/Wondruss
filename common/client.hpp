@@ -26,7 +26,11 @@ namespace Wondruss {
     }
 
     std::string address() const {
-      return socket.remote_endpoint().address().to_string();
+      try {
+        return socket.remote_endpoint().address().to_string();
+      } catch (asio::system_error&) {
+        return "";
+      }
     }
 
     //TODO: encryption
