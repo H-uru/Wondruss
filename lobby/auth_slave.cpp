@@ -1,10 +1,9 @@
 #include "auth_slave.hpp"
-#include "lobby.hpp"
 #include "common/fds.hpp"
 #include "common/logger.hpp"
 
 Wondruss::auth_slave::auth_slave(asio::io_service& io_service, Lobby* lobby)
-  : lobby(lobby), fdsock(io_service), rdsock(io_service), wrsock(io_service)
+  : service_slave(io_service, lobby)
 {
   asio::local::stream_protocol::socket child_fdsock(io_service);
   asio::local::stream_protocol::socket child_rdsock(io_service);
@@ -48,49 +47,4 @@ Wondruss::auth_slave::auth_slave(asio::io_service& io_service, Lobby* lobby)
   }
 
   rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&auth_slave::handle_slave_msg), this, std::placeholders::_1));
-}
-
-void Wondruss::auth_slave::handle_client(asio::ip::tcp::socket*sock)
-{
-  struct msghdr msg;
-  struct cmsghdr *cmsg;
-  struct iovec iov;
-  char buf[CMSG_SPACE(4)];
-
-  iov.iov_base = &sock;
-  iov.iov_len = 1;
-
-  memset(&msg, 0, sizeof(msghdr));
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-  msg.msg_control = buf;
-  msg.msg_controllen = CMSG_SPACE(4);
-  cmsg = CMSG_FIRSTHDR(&msg);
-  cmsg->cmsg_level = SOL_SOCKET;
-  cmsg->cmsg_type = SCM_RIGHTS;
-  cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-  *(int *) CMSG_DATA(cmsg) = sock->native();
-  msg.msg_controllen = cmsg->cmsg_len;
-
-  if(sendmsg(fdsock.native(), &msg, 0) < 0)
-    LOG_ERROR("Could not send socket to auth: ", strerror(errno));
-}
-
-void Wondruss::auth_slave::handle_slave_msg(const asio::error_code& error)
-{
-  MessageHeader header;
-  rdsock.receive(asio::buffer(&header, sizeof(header)));
-  char* buf;
-  buf = new char[header.size];
-  asio::mutable_buffers_1 buffer = asio::buffer(buf, header.size);
-  rdsock.receive(buffer);
-  lobby->dispatch_message(header, buffer);
-  delete[] buf;
-  rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&auth_slave::handle_slave_msg), this, std::placeholders::_1));
-}
-
-void Wondruss::auth_slave::send_message(MessageHeader header, asio::mutable_buffers_1 buf)
-{
-  wrsock.send(asio::buffer(&header, sizeof(header)));
-  wrsock.send(buf);
 }

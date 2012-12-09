@@ -30,7 +30,7 @@ set(Wondruss_DEPS mongoclient ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${PRO
 set(COMMON_SRCS common/logger.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 
 
-add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp lobby/db_slave.cpp lobby.cpp ${COMMON_SRCS})
+add_executable(wondruss lobby/lobby.cpp lobby/auth_slave.cpp lobby/db_slave.cpp lobby/slave.cpp lobby/service_slave.cpp lobby.cpp ${COMMON_SRCS})
 target_link_libraries(wondruss ${Wondruss_DEPS})
 
 add_executable(wondruss_auth auth/authsrv.cpp auth.cpp ${COMMON_SRCS})
