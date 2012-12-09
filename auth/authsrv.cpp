@@ -279,7 +279,7 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
     client->write(login_result);
     client->send(asio::buffer(client->account_uuid, 16));
     client->write<uint32_t>(0); // flags
-    client->write<uint32_t>(0); // billing type
+    client->write<uint32_t>(1); // billing type
     uint32_t dummy_droid[4];
     client->send(asio::buffer(dummy_droid, 16));
     client->flush();
