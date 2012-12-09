@@ -18,7 +18,7 @@ set(CMAKE_C_FLAGS_DEBUG "-DDEBUG ${CMAKE_C_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG ${CMAKE_CXX_FLAGS_DEBUG}")
 
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system filesystem thread program_options)
 find_package(Protobuf)
 
 include_directories(${CMAKE_SOURCE_DIR})
@@ -26,7 +26,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS proto/db.proto)
 
-set(Wondruss_DEPS ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} log4cplus)
+set(Wondruss_DEPS mongoclient ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES} ${PROTOBUF_LIBRARIES} log4cplus)
 set(COMMON_SRCS common/logger.cpp ${PROTO_SRCS} ${PROTO_HDRS})
 
 

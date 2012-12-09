@@ -273,10 +273,10 @@ void Wondruss::AuthSrv::handle_acct_login(Client* client)
       // TODO: send error to client
     }
     Db::LoginResponseMsg* login = static_cast<Db::LoginResponseMsg*>(response);
-    // TODO: check login and respond to the client appropriately
+    NetStatus login_result = login->result() ? NetStatus::Success : NetStatus::AccountNotFound;
     client->write(AuthToCli::AcctLoginReply);
     client->write(trans);
-    client->write(NetStatus::Success); // net success
+    client->write(login_result);
     client->send(asio::buffer(client->account_uuid, 16));
     client->write<uint32_t>(0); // flags
     client->write<uint32_t>(0); // billing type

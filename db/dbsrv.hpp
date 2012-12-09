@@ -1,6 +1,8 @@
 #include "common/asio.hpp"
 #include "common/msgs.hpp"
 
+#include <mongo/client/dbclient.h>
+
 namespace Wondruss {
   class DbSrv {
   public:
@@ -15,5 +17,8 @@ namespace Wondruss {
 
     asio::local::stream_protocol::socket rdsock;
     asio::local::stream_protocol::socket wrsock;
+
+    // MongoDB stuff
+    mongo::DBClientConnection db;
   };
 }

@@ -7,7 +7,8 @@ Wondruss::DbSrv::DbSrv(asio::io_service& io_service)
 {
   wrsock.send(asio::buffer("OK", 2));
   rdsock.async_receive(asio::null_buffers(), std::bind(std::mem_fn(&DbSrv::handle_message), this, std::placeholders::_1));
-  //TODO: listen on rdsock for messages from other processes
+
+  db.connect("10.254.0.199");
 }
 
 void Wondruss::DbSrv::send_response(MessageHeader header, MessageId id, Message* msg)
@@ -42,7 +43,13 @@ void Wondruss::DbSrv::handle_message(const asio::error_code& error)
 
 void Wondruss::DbSrv::handle_login_request(const MessageHeader& header, const Db::LoginRequestMsg& request) {
   LOG_DEBUG("Got login request at DB");
+
+  //TODO: verify password hash
+  mongo::BSONObj query = BSON( "name" << request.username() );
+
+  std::auto_ptr<mongo::DBClientCursor> result =
+    db.query("wondruss.users", query);
   Db::LoginResponseMsg response;
-  response.set_result(1);
+  response.set_result(result->more());
   send_response(header, MessageId::DbLoginResponse, &response);
 }
