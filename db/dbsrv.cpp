@@ -47,7 +47,7 @@ void Wondruss::DbSrv::handle_login_request(const MessageHeader& header, const Db
   //TODO: verify password hash
   mongo::BSONObj query = BSON( "name" << request.username() );
 
-  std::auto_ptr<mongo::DBClientCursor> result =
+  std::unique_ptr<mongo::DBClientCursor> result =
     db.query("wondruss.users", query);
   Db::LoginResponseMsg response;
   response.set_result(result->more());
